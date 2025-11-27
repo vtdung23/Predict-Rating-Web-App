@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Rating Predictor{% endblock %}
+
+{% block nav_items %}
+<div class="flex items-center space-x-4">
+    <span class="text-gray-700" id="username-display">
+        <i class="fas fa-user mr-2"></i><span id="current-username"></span>
+    </span>
+    <button 
+        onclick="logout()"
+        class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
+    >
+        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Welcome Section -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 fade-in">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-chart-line text-indigo-600 mr-3"></i>
+            Prediction Dashboard
+        </h2>
+        <p class="text-gray-600">Dự đoán đánh giá sản phẩm từ bình luận tiếng Việt</p>
+    </div>
+    
+    <!-- Product Selection -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+        <label class="block text-lg font-semibold text-gray-800 mb-3">
+            <i class="fas fa-box text-indigo-600 mr-2"></i>Select Product
+        </label>
+        <select 
+            id="product-select"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+        >
+            <option value="">-- Choose a product --</option>
+            {% for product in products %}
+            <option value="{{ product }}">{{ product }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <!-- Input Mode Tabs -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+        <div class="flex space-x-4 mb-6 border-b">
+            <button 
+                onclick="switchTab('single')"
+                id="tab-single"
+                class="tab-button px-6 py-3 font-medium border-b-2 border-indigo-600 text-indigo-600"
+            >
+                <i class="fas fa-comment mr-2"></i>Single Comment
+            </button>
+            <button 
+                onclick="switchTab('batch')"
+                id="tab-batch"
+                class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700"
+            >
+                <i class="fas fa-file-csv mr-2"></i>Upload CSV
+            </button>
+        </div>
+        
+        <!-- Single Prediction Form -->
+        <div id="single-form" class="tab-content">
+            <form id="singlePredictionForm">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Enter your comment (Vietnamese):
+                </label>
+                <textarea 
+                    id="single-comment"
+                    rows="4"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                    placeholder="Sản phẩm rất tốt, chất lượng cao..."
+                ></textarea>
+                
+                <button 
+                    type="submit"
+                    class="mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-medium shadow-lg"
+                >
+                    <i class="fas fa-magic mr-2"></i>Predict Rating
+                </button>
+            </form>
+            
+            <!-- Single Result -->
+            <div id="single-result" class="hidden mt-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-2 border-green-200">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-star text-yellow-500 mr-2"></i>Prediction Result
+                </h3>
+                <div class="flex items-center space-x-6">
+                    <div class="text-center">
+                        <div class="text-5xl font-bold text-indigo-600" id="predicted-rating"></div>
+                        <div class="text-sm text-gray-600 mt-2">Rating</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600" id="confidence-score"></div>
+                        <div class="text-sm text-gray-600 mt-2">Confidence</div>
+                    </div>
+                    <div class="flex-1">
+                        <div id="rating-stars" class="text-4xl"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Batch Prediction Form -->
+        <div id="batch-form" class="tab-content hidden">
+            <form id="batchPredictionForm">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-500 transition">
+                    <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                    <label for="csv-file" class="block text-lg font-medium text-gray-700 mb-2 cursor-pointer">
+                        Upload CSV File
+                    </label>
+                    <input 
+                        type="file"
+                        id="csv-file"
+                        accept=".csv"
+                        class="hidden"
+                        onchange="displayFileName(this)"
+                    >
+                    <p class="text-sm text-gray-500 mb-2">CSV must contain a "Comment" column</p>
+                    <p id="file-name" class="text-sm font-medium text-indigo-600"></p>
+                    <label for="csv-file" class="inline-block mt-4 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 cursor-pointer transition">
+                        Choose File
+                    </label>
+                </div>
+                
+                <button 
+                    type="submit"
+                    class="mt-6 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-medium shadow-lg"
+                >
+                    <i class="fas fa-magic mr-2"></i>Predict Batch
+                </button>
+            </form>
+            
+            <!-- Batch Results -->
+            <div id="batch-results" class="hidden mt-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Rating Distribution Chart -->
+                    <div class="bg-white p-6 rounded-xl shadow">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-chart-pie text-indigo-600 mr-2"></i>Rating Distribution
+                        </h3>
+                        <canvas id="ratingChart"></canvas>
+                    </div>
+                    
+                    <!-- Word Cloud -->
+                    <div class="bg-white p-6 rounded-xl shadow">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-cloud text-indigo-600 mr-2"></i>Word Cloud
+                        </h3>
+                        <img id="wordcloud-image" src="" alt="Word Cloud" class="w-full rounded-lg">
+                    </div>
+                </div>
+                
+                <!-- Results Table -->
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">
+                            <i class="fas fa-table text-indigo-600 mr-2"></i>Prediction Results
+                        </h3>
+                        <button 
+                            onclick="downloadCSV()"
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                        >
+                            <i class="fas fa-download mr-2"></i>Download CSV
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full" id="results-table">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Comment</th>
+                                    <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">Rating</th>
+                                    <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-tbody" class="divide-y divide-gray-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Check authentication
+    const token = localStorage.getItem('access_token');
+    const username = localStorage.getItem('username');
+    
+    if (!token) {
+        window.location.href = '/login';
+    }
+    
+    document.getElementById('current-username').textContent = username || 'User';
+    
+    // Global variables
+    let currentResults = [];
+    let chartInstance = null;
+    
+    // Logout function
+    function logout() {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+    }
+    
+    // Tab switching
+    function switchTab(tab) {
+        const tabs = ['single', 'batch'];
+        tabs.forEach(t => {
+            const button = document.getElementById(`tab-${t}`);
+            const content = document.getElementById(`${t}-form`);
+            
+            if (t === tab) {
+                button.classList.add('border-indigo-600', 'text-indigo-600');
+                button.classList.remove('text-gray-500');
+                content.classList.remove('hidden');
+            } else {
+                button.classList.remove('border-indigo-600', 'text-indigo-600');
+                button.classList.add('text-gray-500');
+                content.classList.add('hidden');
+            }
+        });
+        
+        // Hide results when switching
+        document.getElementById('single-result').classList.add('hidden');
+        document.getElementById('batch-results').classList.add('hidden');
+    }
+    
+    // Display selected file name
+    function displayFileName(input) {
+        const fileName = input.files[0]?.name || '';
+        document.getElementById('file-name').textContent = fileName ? `Selected: ${fileName}` : '';
+    }
+    
+    // Single Prediction
+    document.getElementById('singlePredictionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const productName = document.getElementById('product-select').value;
+        const comment = document.getElementById('single-comment').value;
+        
+        if (!productName) {
+            alert('Please select a product first!');
+            return;
+        }
+        
+        if (!comment.trim()) {
+            alert('Please enter a comment!');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/predict/single', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    product_name: productName,
+                    comment: comment
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                displaySingleResult(data);
+            } else {
+                const error = await response.json();
+                alert(error.detail || 'Prediction failed');
+            }
+        } catch (error) {
+            alert('An error occurred: ' + error.message);
+        }
+    });
+    
+    function displaySingleResult(data) {
+        document.getElementById('predicted-rating').textContent = data.predicted_rating;
+        document.getElementById('confidence-score').textContent = (data.confidence_score * 100).toFixed(1) + '%';
+        
+        // Display stars
+        const stars = '⭐'.repeat(data.predicted_rating);
+        document.getElementById('rating-stars').textContent = stars;
+        
+        document.getElementById('single-result').classList.remove('hidden');
+    }
+    
+    // Batch Prediction
+    document.getElementById('batchPredictionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const productName = document.getElementById('product-select').value;
+        const fileInput = document.getElementById('csv-file');
+        const file = fileInput.files[0];
+        
+        if (!productName) {
+            alert('Please select a product first!');
+            return;
+        }
+        
+        if (!file) {
+            alert('Please select a CSV file!');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('product_name', productName);
+        formData.append('file', file);
+        
+        try {
+            const response = await fetch('/api/predict/batch', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                displayBatchResults(data);
+            } else {
+                const error = await response.json();
+                alert(error.detail || 'Prediction failed');
+            }
+        } catch (error) {
+            alert('An error occurred: ' + error.message);
+        }
+    });
+    
+    function displayBatchResults(data) {
+        currentResults = data.results;
+        
+        // Display word cloud
+        document.getElementById('wordcloud-image').src = data.wordcloud_url;
+        
+        // Create chart
+        createRatingChart(data.rating_distribution);
+        
+        // Populate table
+        const tbody = document.getElementById('results-tbody');
+        tbody.innerHTML = '';
+        
+        data.results.forEach(result => {
+            const row = `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm text-gray-700">${result.Comment}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="inline-block bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full font-semibold">
+                            ${result.Predicted_Rating}⭐
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-center text-sm text-gray-600">
+                        ${(result.Confidence * 100).toFixed(1)}%
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+        
+        document.getElementById('batch-results').classList.remove('hidden');
+    }
+    
+    function createRatingChart(distribution) {
+        const ctx = document.getElementById('ratingChart').getContext('2d');
+        
+        // Destroy existing chart
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+        
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['1⭐', '2⭐', '3⭐', '4⭐', '5⭐'],
+                datasets: [{
+                    label: 'Number of Reviews',
+                    data: [
+                        distribution[1] || 0,
+                        distribution[2] || 0,
+                        distribution[3] || 0,
+                        distribution[4] || 0,
+                        distribution[5] || 0
+                    ],
+                    backgroundColor: [
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(251, 146, 60, 0.8)',
+                        'rgba(250, 204, 21, 0.8)',
+                        'rgba(132, 204, 22, 0.8)',
+                        'rgba(34, 197, 94, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(239, 68, 68, 1)',
+                        'rgba(251, 146, 60, 1)',
+                        'rgba(250, 204, 21, 1)',
+                        'rgba(132, 204, 22, 1)',
+                        'rgba(34, 197, 94, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function downloadCSV() {
+        if (currentResults.length === 0) {
+            alert('No results to download');
+            return;
+        }
+        
+        // Create CSV content
+        const headers = ['Comment', 'Predicted_Rating', 'Confidence'];
+        const csvContent = [
+            headers.join(','),
+            ...currentResults.map(r => 
+                `"${r.Comment.replace(/"/g, '""')}",${r.Predicted_Rating},${r.Confidence}`
+            )
+        ].join('\n');
+        
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `predictions_${new Date().getTime()}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+{% endblock %}
