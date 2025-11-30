@@ -4,7 +4,7 @@ Handles single and batch predictions
 """
 import io
 import csv
-from typing import List
+from typing import List, Dict
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
@@ -16,11 +16,13 @@ from app.schemas import (
     SinglePredictionRequest,
     SinglePredictionResponse,
     BatchPredictionResponse,
-    PredictionHistoryResponse
+    PredictionHistoryResponse,
+    PDFReportRequest
 )
 from app.services.auth_service import get_current_user
 from app.services.ml_service import get_ml_service, MLPredictionService
 from app.services.visualization_service import get_viz_service, VisualizationService
+from app.services.report_service import get_report_service, ReportService
 
 router = APIRouter()
 
@@ -69,7 +71,8 @@ async def predict_batch(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     ml_service: MLPredictionService = Depends(get_ml_service),
-    viz_service: VisualizationService = Depends(get_viz_service)
+    viz_service: VisualizationService = Depends(get_viz_service),
+    report_service: ReportService = Depends(get_report_service)
 ):
     """
     Predict ratings for batch of comments from CSV file
@@ -144,12 +147,23 @@ async def predict_batch(
                 'Confidence': pred['confidence']
             })
         
+        # Generate PDF report
+        pdf_filename = f"report_{current_user.username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        pdf_content = report_service.generate_pdf_report(
+            predictions=predictions,
+            distribution=distribution,
+            wordcloud_path=wordcloud_url,
+            username=current_user.username,
+            filename=pdf_filename
+        )
+        
         return {
             "total_predictions": len(predictions),
             "rating_distribution": distribution,
             "wordcloud_url": wordcloud_url,
             "results": results,
-            "csv_download_url": f"/api/predict/download/{current_user.id}/{datetime.now().timestamp()}"
+            "csv_download_url": f"/api/predict/download/{current_user.id}/{datetime.now().timestamp()}",
+            "pdf_download_url": f"/api/predict/download-pdf/{current_user.id}/{datetime.now().timestamp()}"
         }
     
     except Exception as e:
@@ -205,3 +219,34 @@ async def download_predictions_csv(
             "Content-Disposition": f"attachment; filename=predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         }
     )
+
+
+@router.post("/download-pdf")
+async def download_predictions_pdf(
+    request: PDFReportRequest,
+    current_user: User = Depends(get_current_user),
+    report_service: ReportService = Depends(get_report_service)
+):
+    """
+    Download prediction results as PDF report
+    """
+    try:
+        pdf_content = report_service.generate_pdf_report(
+            predictions=request.predictions,
+            distribution=request.distribution,
+            wordcloud_path=request.wordcloud_path,
+            username=current_user.username
+        )
+        
+        return StreamingResponse(
+            io.BytesIO(pdf_content),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=predictions_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating PDF: {str(e)}"
+        )

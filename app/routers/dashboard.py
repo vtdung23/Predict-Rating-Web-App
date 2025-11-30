@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
 from app.services.auth_service import get_current_user
-from app.config import PRODUCTS
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -41,6 +40,5 @@ async def dashboard_page(request: Request):
     Requires authentication (handle in frontend with token)
     """
     return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "products": PRODUCTS
+        "request": request
     })

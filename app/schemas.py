@@ -34,7 +34,7 @@ class TokenData(BaseModel):
 
 # ===== Prediction Schemas =====
 class SinglePredictionRequest(BaseModel):
-    product_name: str
+    product_name: Optional[str] = ""
     comment: str
 
 class SinglePredictionResponse(BaseModel):
@@ -48,6 +48,12 @@ class BatchPredictionResponse(BaseModel):
     wordcloud_url: str
     results: List[dict]
     csv_download_url: str
+    pdf_download_url: str
+
+class PDFReportRequest(BaseModel):
+    predictions: List[dict]
+    distribution: dict
+    wordcloud_path: str
 
 
 # ===== History Schemas =====

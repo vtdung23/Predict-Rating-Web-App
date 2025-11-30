@@ -23,14 +23,3 @@ WORDCLOUD_DIR = UPLOAD_DIR / "wordclouds"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 WORDCLOUD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Products (simulated dataset)
-PRODUCTS = [
-    "Điện thoại iPhone 15 Pro Max",
-    "Laptop Dell XPS 13",
-    "Tai nghe Sony WH-1000XM5",
-    "Máy ảnh Canon EOS R5",
-    "Đồng hồ thông minh Apple Watch Series 9",
-    "Tivi Samsung QLED 65 inch",
-    "Máy lạnh Daikin Inverter",
-    "Tủ lạnh LG InstaView",
-]
