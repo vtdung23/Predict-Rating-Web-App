@@ -64,7 +64,7 @@ PredictRating/
 - Upload CSV file with comments
 - Bulk prediction processing
 - **Visualizations:**
-  - Bar chart showing rating distribution
+  - Bar chart showing rating distributionStart command
   - Word cloud of frequent words
   - Results table with all predictions
 - **Export:** Download CSV with predicted ratings
