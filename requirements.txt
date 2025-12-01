@@ -1,11 +1,11 @@
 # ============================================
-# PRODUCTION REQUIREMENTS FOR RENDER DEPLOYMENT
+# PRODUCTION REQUIREMENTS FOR HUGGING FACE SPACES
+# Optimized for Docker deployment with heavy ML models
 # ============================================
 
 # Web Framework
 fastapi>=0.104.1
 uvicorn[standard]>=0.24.0
-gunicorn>=21.2.0
 
 # Server & HTTP
 python-multipart>=0.0.6
@@ -13,21 +13,20 @@ python-dotenv>=1.0.0
 
 # Database (Hybrid: SQLite + PostgreSQL)
 sqlalchemy>=2.0.23
-psycopg2-binary>=2.9.9  # CRITICAL for PostgreSQL on Render
+psycopg2-binary>=2.9.9  # For external PostgreSQL (Render/Neon)
 
 # Authentication & Security
 python-jose[cryptography]>=3.3.0
-passlib>=1.7.4
-argon2-cffi>=23.1.0
+passlib[bcrypt]>=1.7.4
 email-validator>=2.1.0
 
 # Templates
 jinja2>=3.1.2
 
 # ML/NLP (For PhoBERT model)
-torch>=2.5.0
+torch>=2.1.0
 transformers>=4.36.0
-underthesea>=8.3.0
+underthesea>=6.7.0
 
 # Data Processing
 pandas>=2.0.0
@@ -36,9 +35,11 @@ numpy>=1.24.0
 # Visualization
 matplotlib>=3.8.0
 wordcloud>=1.9.3
+pillow>=10.0.0
 
 # PDF Generation
 reportlab>=4.0.0
 
 # Utilities
 requests>=2.31.0
+aiofiles>=23.2.1
