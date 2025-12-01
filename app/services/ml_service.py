@@ -2,6 +2,9 @@
 ML Prediction Service
 This is a DUMMY service - replace with your real model
 """
+import os
+# Đặt đường dẫn cache sang ổ G để tránh dùng ổ C
+os.environ['HF_HOME'] = 'G:/huggingface_cache'
 import random
 from typing import List, Dict, Any
 import torch
@@ -34,10 +37,14 @@ class MLPredictionService:
         )
 
         # Load your fine-tuned weights
-        state_dict = torch.load(WEIGHT_PATH, map_location=device)
+        # Use weights_only=False to bypass PyTorch 2.6+ security check
+        # WARNING: Only use this with trusted model files!
+        state_dict = torch.load(WEIGHT_PATH, map_location=device, weights_only=False)
         self.model.load_state_dict(state_dict)
 
         self.model.eval()
+        self.model.to(device)
+        self.device = device
             
     def predict_single(self, text: str) -> Dict[str, Any]:
         """
@@ -64,6 +71,9 @@ class MLPredictionService:
             max_length=256,
             return_tensors="pt"
         )
+        
+        # Move tensors to device (CPU or CUDA)
+        encoded = {k: v.to(self.device) for k, v in encoded.items()}
 
         # 3. Inference
         with torch.no_grad():

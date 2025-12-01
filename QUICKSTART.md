@@ -13,7 +13,9 @@ python main.py
 ```
 
 3. **Access the application:**
-- Dashboard: http://localhost:8000/dashboard
+# Nhớ kích hoạt môi trường trước
+conda activate ./env
+- Dashboard: http://localhost:8000
 - **Swagger API Docs: http://localhost:8000/docs** ⭐ (Show this to your teacher!)
 - ReDoc: http://localhost:8000/redoc
 
